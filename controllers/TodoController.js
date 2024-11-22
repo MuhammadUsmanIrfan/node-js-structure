@@ -208,12 +208,25 @@ class TodoController {
         res.status(404);
         throw new Error("todo id is required");
       }
+     const checkTodo = await TodoModel.findOne({_id: editTodoID, created_by: req.user._id, is_deleted: false})
+     console.log("Check delete resp ---", checkTodo)
+
 
       const todo = await TodoModel.findOneAndUpdate(
-        { _id: editTodoID, created_by: req.user._id, is_deleted: false },
-        { is_deleted: true },
-        { new: true }
+        {
+          _id: editTodoID,
+          created_by: req.user._id,
+          is_deleted: false,
+        },
+        {
+          is_deleted: true,
+        },
+        {
+          new: true,
+        }
       );
+   
+   
 
       if (todo) {
         res.status(200);

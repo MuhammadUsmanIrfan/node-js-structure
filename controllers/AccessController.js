@@ -6,29 +6,36 @@ import nodemailer from "nodemailer"
 import QrAuthData from "../utils/QrCodeGenerater.js"
 import userOtpVerification from "../utils/OtpVerification.js"
 import { passwordVerification } from "../utils/PasswordHandler.js";
+import twilio from "twilio";
 import fs from "fs"
 
 export default class AccessController {
 
   static userRegisterion = asyncHandler(async (req, res) => {
     try {
-      const { first_name, last_name, email, password } = req.body;
+      const { first_name, last_name, email, password, phone_num} = req.body;
 
-      if (!first_name || !last_name || !email || !password) {
+      if (!first_name || !last_name || !email || !password ) {
         res.status(404);
         throw new Error("all fields are required");
       }
 
-      // check email already exist or not
-      const checkUser = await UserModel.findOne({
+      
+      const query = {
         email,
         status: true,
         is_deleted: false,
-      });
+      };
+      
+      if (req.body?.phone_num) {
+        query['phone_num.number'] = req.body.phone_num;
+      }
+      
+      const checkUser = await UserModel.findOne(query);
 
       if (checkUser) {
         res.status(409);
-        throw new Error("this email is alreay exist");
+        throw new Error("user with this details already exist");
       }
       
       const user = await UserModel.create({
@@ -36,7 +43,8 @@ export default class AccessController {
         last_name,
         email,
         password,
-        profile_image:(req?.file?.filename)?`uploads/${req?.file?.filename}` : ""
+        profile_image:(req?.file?.filename)?`uploads/${req?.file?.filename}` : "",
+        phone_num: (phone_num) ? { number: phone_num} : {number:0}
       });
 
       res.status(201);
@@ -49,18 +57,11 @@ export default class AccessController {
             first_name: user.first_name,
             last_name: user.last_name,
             email: user.email,
-            profile_image: user.profile_image
+            profile_image: user.profile_image,
+            phone_num: user.phone_num.number,
           }
         )
       );
-    } catch (error) {
-      throw new Error(error);
-    }
-  });
-
-  static homePage = asyncHandler(async (req, res) => {
-    try {
-      res.status(200).send("<a href='http://localhost:3000/loginwithgoogle'>Go to login with google</a>")
     } catch (error) {
       throw new Error(error);
     }
@@ -114,7 +115,152 @@ export default class AccessController {
     }
   });
 
-// Authenticator app logic--------------------------------------------
+  static validate = asyncHandler(async (req, res) => {
+    try {
+
+      if (req.user) {
+  
+          res.status(200);
+          res.json(
+            AuthController.generateResponse(
+              200,
+              "User has been vlidate successfully",
+              {
+                id: req.user._id,
+                first_name: req.user.first_name,
+                last_name: req.user.last_name,
+                email: req.user.email,
+                profile_image: req.user.profile_image,
+                phone_num: req.user.phone_num,
+                is_verified: req.user.is_verified,
+                status: req.user.status,
+              },
+            )
+          );
+        } else {
+          res.status(400);
+          throw new Error("invalid token");
+        }
+      
+    } catch (error) {
+      throw new Error(error);
+    }
+  });
+  
+// send SMS OTP logic--------------------------------------------
+  static getSmsOtp = asyncHandler(async (req, res) => {
+    try {
+      const { number } = req.body;
+
+      if (!number) {
+        res.status(404);
+        throw new Error("number is required");
+      }
+      const client = new twilio(process.env.Account_SID, process.env.Auth_Token);
+
+      const digits = '0123456789';
+      let OTP = "";
+
+      for (let i = 0; i < 4; i++) {
+          OTP += digits[Math.floor(Math.random() * 10)];
+      }
+
+      
+      const message = await client.messages.create({
+          body: `Your OTP is ${OTP} for verification`,
+          from:`${process.env.TWILLIO_NUMBER}`,
+          to: `${number}`, 
+      });
+    
+      if(message)
+        {
+          const user = await UserModel.findOneAndUpdate({
+            _id: req.user._id, is_deleted: false
+          },{$set: { 'phone_num.number_otp': Number(OTP) }},{new:true});
+
+          if (user) {
+        
+            res.status(200);
+            res.json(
+              AuthController.generateResponse(
+                200,
+                "otp sent successfully",
+                {
+                  id: user._id,
+                  first_name: user.first_name,
+                  last_name: user.last_name,
+                  email: user.email,
+                  message_id: message.sid,
+                },
+              )
+            );
+         
+        } else {
+          res.status(400);
+          throw new Error("Failed to add otp");
+        }
+
+        } else {
+          res.status(400)
+          throw new Error("Failed to send sms otp")
+        } 
+      
+    } catch (error) {
+      throw new Error(error);
+    }
+  });
+
+  static verifyNumber = asyncHandler(async (req, res) => {
+    try {
+      const { otp } = req.body;
+
+      if (!otp) {
+        res.status(404);
+        throw new Error("otp is required");
+      }
+      
+      const userOtp = String(req.user.phone_num.number_otp);
+
+      if(otp === userOtp)
+        {
+          const user = await UserModel.findOneAndUpdate({
+            _id: req.user._id, is_deleted: false
+          },{$set: { 'phone_num.number_verified': true }},{new:true});
+
+          if (user) {
+        
+            res.status(200);
+            res.json(
+              AuthController.generateResponse(
+                200,
+                "phone number successfully verified",
+                {
+                  id: user._id,
+                  first_name: user.first_name,
+                  last_name: user.last_name,
+                  email: user.email,
+                  number_verified: user.phone_num.number_verified,
+                },
+              )
+            );
+         
+        } else {
+          res.status(400);
+          throw new Error("Failed to verify");
+        }
+
+        } else {
+          res.status(400)
+          throw new Error("invalid otp")
+        } 
+      
+    } catch (error) {
+      throw new Error(error);
+    }
+  });
+//---------------------------------------------------------------
+
+// Authenticator app logic---------------------------------------
   static getQrCode = asyncHandler(async (req, res) => {
     try {
           if(QrAuthData)
@@ -195,9 +341,7 @@ export default class AccessController {
       throw new Error(error.message);
     }
   });
-
-//--------------------------------------------------------------------
-
+//---------------------------------------------------------------
 
 // Login with Google logic --------------------------------------------
   static userLoginWithGoogle = asyncHandler(async (req, res) => {
@@ -216,8 +360,8 @@ export default class AccessController {
       if(checkUser)
       {
         const token = AuthController.tokenGenerator(checkUser._id)
-        res.status(200)
-        res.json(AuthController.generateResponse(200, "user sucessfully login",{},token))
+        res.redirect("http://localhost:5173?token="+token);
+
       }else {
           const user = await UserModel.create({
             first_name: req.user.profile._json.given_name,
@@ -229,8 +373,8 @@ export default class AccessController {
           })
 
           const token = AuthController.tokenGenerator(user._id)
-          res.status(201)
-          res.json(AuthController.generateResponse(200, "user sucessfully login and user details are saved",{},token))
+      
+          res.redirect("http://localhost:5173?token="+token);
       }
 
     } catch (error) {
@@ -250,7 +394,6 @@ export default class AccessController {
       throw new Error(error);
     }
   });  
-  
 //---------------------------------------------------------------------
 
   static getUserDetails = asyncHandler(async (req, res) => {

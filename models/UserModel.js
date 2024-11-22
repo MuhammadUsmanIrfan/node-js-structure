@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema(
     phone_num: {
       number:{
         type:Number,
+        unique: true,
         default:0
       },
       number_verified:{

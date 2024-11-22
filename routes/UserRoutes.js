@@ -3,19 +3,27 @@ import AccessController from "../controllers/AccessController.js";
 import AuthMiddleware from "../middlewares/AuthMiddleware.js";
 import {profileUpload} from "../middlewares/FileUploadMiddleware.js";
 import passport from "passport";
-// import { Strategy as googleStrategy} from "passport-google-oauth20";
+
 
 
 const userRoutes = express.Router();
 
-userRoutes.get("/",AccessController.homePage);
-
 userRoutes.post("/signup",profileUpload.single("file") ,AccessController.userRegisterion);
 
-userRoutes.post("/signin", AccessController.userLogin);
+userRoutes.post("/signin", AccessController.userLogin); 
 
-// Google auth routes------------------------------------------------------------------------------------------
+userRoutes.post("/validate",AuthMiddleware,AccessController.validate); 
+
+
+// send SMS OTP routes---------------------------------------------------
+userRoutes.post("/getsmsotp",AuthMiddleware ,AccessController.getSmsOtp);
+
+userRoutes.post("/verifynumber",AuthMiddleware ,AccessController.verifyNumber);
+//------------------------------------------------------------------------
+
+// Google auth routes--------------------------------------------------------------------------
 userRoutes.get("/loginwithgoogle",passport.authenticate("google", {scope : ['profile', 'email']}));
+
 userRoutes.get("/logoutfromgoogle", AccessController.logoutFromGoogle);
 
 userRoutes.get("/auth/google/callback", passport.authenticate('google', { failureRedirect: "/loginwithgoogle"}), AccessController.userLoginWithGoogle)

@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import db_conntion from "./config/DbConnection.js";
 import errorHandler from "./middlewares/ErrorMiddleware.js";
 import routes from "./routes/index.js";
+import cors from "cors";
 
 const app = express();
 const port = process.env.PORT;
@@ -16,6 +17,11 @@ const port = process.env.PORT;
 const currentPath = fileURLToPath(import.meta.url);
 const curentDirname = path.dirname(currentPath);
 
+const corsOpts = {
+  origin: "*",
+};
+
+app.use(cors(corsOpts));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false, limit: "25mb" }));
 app.use("/uploads",  express.static(path.join(curentDirname, "uploads")));
@@ -32,7 +38,7 @@ app.use(passport.session())
 passport.use(new googleStrategy({
   clientID:process.env.Client_ID,
   clientSecret:process.env.Client_Secert,
-  callbackURL:`${process.env.CALLBACK_URL}${process.env.PORT}/auth/google/callback`
+  callbackURL:`${process.env.CALLBACK_URL}${process.env.PORT}/auth/google/callback`,
 },(accessToken, refreshToken, profile, done)=>{
 
    const user = {
