@@ -26,28 +26,30 @@ const todoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-todoSchema.pre("findOneAndUpdate", function(next) {
+// todoSchema.pre("findOneAndUpdate", function(next) {
 
    
-  try {
+//   try {
     
-    const update = this.getUpdate();
+//     const update = this.getUpdate("is_completed");
 
-    if (update.is_completed === "true" || update.is_completed === "false") {
+    
+//     if (update.is_completed === "true" || update.is_completed === "false") {
      
-      update.is_completed ==="true" ? update.is_completed === true : update.is_completed === false
+//       update.is_completed ==="true" ? update.is_completed === true : update.is_completed === false
 
-    } else
-    {
-      throw new Error("Invalid value")
-    }
-    next();  
+//     } else
+//     {
+     
+//       throw new Error("Invalid value")
+//     }
+//     next();  
 
-  } catch (error) {
-    throw new Error(error)
-  }
+//   } catch (error) {
+//     throw new Error(error)
+//   }
   
-});
+// });
 
 
 

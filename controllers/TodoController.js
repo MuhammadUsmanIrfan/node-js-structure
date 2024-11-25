@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import AuthController from "./AuthController.js";
 import TodoModel from "../models/TodoModel.js";
 import CategoryModel from "../models/CategoryModel.js";
+import  mongoose from 'mongoose';
 
 class TodoController {
   static getTodos = asyncHandler(async (req, res) => {
@@ -202,33 +203,20 @@ class TodoController {
 
   static deleteTodo = asyncHandler(async (req, res) => {
     try {
-      const { editTodoID } = req.body;
+      const { todoID } = req.body;
 
-      if (!editTodoID) {
+      if (!todoID) {
         res.status(404);
         throw new Error("todo id is required");
       }
-     const checkTodo = await TodoModel.findOne({_id: editTodoID, created_by: req.user._id, is_deleted: false})
-     console.log("Check delete resp ---", checkTodo)
 
-
-      const todo = await TodoModel.findOneAndUpdate(
-        {
-          _id: editTodoID,
-          created_by: req.user._id,
-          is_deleted: false,
-        },
-        {
-          is_deleted: true,
-        },
-        {
-          new: true,
-        }
-      );
-   
-   
-
-      if (todo) {
+     const todo = await TodoModel.findOneAndUpdate(
+      {_id: todoID, created_by: req.user._id, is_deleted: false},
+      { is_deleted: true },
+      { new: true} 
+    );
+    
+    if (todo) {
         res.status(200);
         res.json(
           AuthController.generateResponse(200, `todo deleted Successful`, {
@@ -236,6 +224,7 @@ class TodoController {
             created_by: todo.created_by,
             category: todo.category,
             todo: todo.todo,
+            is_deleted: todo.is_deleted,
           })
         );
       } else {
@@ -243,7 +232,7 @@ class TodoController {
         throw new Error("failed to edit todo");
       }
     } catch (error) {
-      throw new Error(error);
+      console.log("error ",error);      throw new Error(error);
     }
   });
 }
