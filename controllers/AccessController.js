@@ -13,14 +13,17 @@ export default class AccessController {
 
   static userRegisterion = asyncHandler(async (req, res) => {
     try {
+      
       const { first_name, last_name, email, password, phone_num} = req.body;
+      
+     
 
       if (!first_name || !last_name || !email || !password ) {
         res.status(404);
         throw new Error("all fields are required");
       }
 
-      
+     
       const query = {
         email,
         status: true,
@@ -37,6 +40,7 @@ export default class AccessController {
         res.status(409);
         throw new Error("user with this details already exist");
       }
+      
       
       const user = await UserModel.create({
         first_name,

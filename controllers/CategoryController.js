@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import CategoryModel from "../models/CategoryModel.js";
 import AuthController from "./AuthController.js";
+import TodoModel from "../models/TodoModel.js";
 
 export default class CategoryController {
   static getCategories = asyncHandler(async (req, res) => {
@@ -175,7 +176,12 @@ export default class CategoryController {
         }
       );
 
-      if (category) {
+      const todos = await TodoModel.updateMany({ created_by: req.user._id,
+        is_deleted: false, 
+        category: category._id}, {is_deleted: true}, {new:true})
+
+
+      if (category && todos) {
         res.status(200);
         res.json(
           AuthController.generateResponse(201, "category delete successfully", {
