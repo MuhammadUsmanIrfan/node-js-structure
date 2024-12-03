@@ -25,6 +25,7 @@ export default class CategoryController {
         {
           $match: {
             created_by: req.user._id,
+            is_deleted: false
           },
         },
         {
@@ -42,14 +43,30 @@ export default class CategoryController {
           },
         },
       ]);
+      
+      const totalCategoryCount = await CategoryModel.aggregate([
+        {
+          $match: {
+            created_by: req.user._id,
+            is_deleted: false
+          },
+        },
+        {
+          $count : "total_cateories"
+        },
+      ])
 
+      const nbPages = Math.ceil( totalCategoryCount[0].total_cateories / limit)
       if (getCategory) {
         res.status(200);
         res.json(
           AuthController.generateResponse(
-            201,
+            200,
             "categories get successfuly",
-            getCategory
+            {getCategory,
+              totalCategoryCount:totalCategoryCount[0].total_cateories,
+              nbPages
+            }
           )
         );
       } else {

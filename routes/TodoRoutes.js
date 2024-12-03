@@ -6,6 +6,8 @@ const TodoRoutes = express.Router();
 
 TodoRoutes.get("/gettodos", AuthMiddleware, TodoController.getTodos);
 
+TodoRoutes.post("/searchtodo", AuthMiddleware, TodoController.searchTodos);
+
 TodoRoutes.post("/addtodo", AuthMiddleware, TodoController.addTodo);
 
 TodoRoutes.patch("/edittodo", AuthMiddleware, TodoController.editTodo);

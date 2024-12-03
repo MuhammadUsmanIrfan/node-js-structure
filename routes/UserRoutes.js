@@ -33,11 +33,15 @@ userRoutes.get("/auth/google/callback", passport.authenticate('google', { failur
 userRoutes.get("/getqrcode", AuthMiddleware, AccessController.getQrCode);
 
 userRoutes.post("/otpverification", AuthMiddleware, AccessController.OtpVerification);
+
+userRoutes.patch("/setusergoogleauth", AuthMiddleware, AccessController.setUserGoogleAuth);
 //-----------------------------------------------------------------
 
 userRoutes.get("/getuserdetails" ,AuthMiddleware, AccessController.getUserDetails);
 
 userRoutes.patch("/edituserdetails" ,AuthMiddleware,profileUpload.single('file') ,AccessController.editUserDetails);
+
+userRoutes.patch("/changeuserpassowrd" ,AuthMiddleware ,AccessController.changeUserPassowrd);
 
 userRoutes.post("/emailverfication", AccessController.sendVerficationEmail);
 

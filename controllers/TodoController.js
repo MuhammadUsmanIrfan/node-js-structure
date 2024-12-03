@@ -63,19 +63,100 @@ class TodoController {
           },
         },
       ]);
+      const totalTodoCount = await TodoModel.aggregate([
+        {
+          $match: {
+            created_by: req.user._id,
+            is_deleted: false
+          },
+        },
+        {
+          $count : "total_Todos"
+        },
+      ])
 
+      const nbPages = Math.ceil( totalTodoCount[0].total_Todos / limit)
       if (getTodos) {
         res.status(200);
         res.json(
           AuthController.generateResponse(
             201,
             "todos get successfuly",
-            getTodos
+            { getTodos,
+              total_Todos:totalTodoCount[0]?.total_Todos,
+              nbPages
+            }
           )
         );
       } else {
         res.status(400);
         throw new Error("Falied to create category");
+      }
+    } catch (error) {
+      throw new Error(error);
+    }
+  });
+
+  static searchTodos = asyncHandler(async (req, res) => {
+    try {
+      
+      const {search_todo} = req.body
+      const search_query = {}
+
+      if(search_todo)
+      {
+        search_query.todo = { $regex: search_todo, $options: "i"}
+      }
+      const getTodos = await TodoModel.aggregate([
+        {
+          $match: {
+            created_by: req.user._id,
+            is_deleted: false,
+            ...search_query
+          },
+        },
+        {
+          $lookup: {
+            from: "tbl_categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "category",
+            pipeline: [
+              {
+                $match: {
+                  is_deleted: false,
+                },
+              },
+              {
+                $project: {
+                  is_deleted: 0,
+                  __v: 0,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            is_deleted: 0,
+            __v: 0,
+          },
+        },
+      ]);
+
+      
+      if (getTodos) {
+        res.status(200);
+        res.json(
+          AuthController.generateResponse(
+            201,
+            "todos search is successfuly",
+            {getTodos}
+          )
+        );
+      } else {
+        res.status(400);
+        throw new Error("Falied to search todos");
       }
     } catch (error) {
       throw new Error(error);

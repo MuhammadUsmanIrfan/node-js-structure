@@ -6,6 +6,6 @@ export const passwordEncrypt = async (userPassword) => {
   return await bcrypt.hash(userPassword, salt);
 };
 
-export const passwordVerification = async (userPassword, user) => {
-  return await bcrypt.compare(userPassword, user.password);
+export const passwordVerification = async (userPassword, dbPassword) => {
+  return await bcrypt.compare(userPassword, dbPassword);
 };
